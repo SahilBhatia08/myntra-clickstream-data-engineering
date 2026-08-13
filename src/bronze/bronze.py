@@ -5,6 +5,7 @@ from datetime import datetime
 import traceback
 from pyspark.sql.types import *
 
+# pipeline control
 dbutils.widgets.text("environment", "dev")
 dbutils.widgets.text("pipeline_run_id", f"manual_run {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 environment = dbutils.widgets.get("environment")

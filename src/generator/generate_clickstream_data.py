@@ -1,0 +1,310 @@
+# Databricks notebook source
+from pyspark.sql import functions as F
+from pyspark.sql.types import *
+from datetime import datetime, timedelta
+import random
+
+dbutils.widgets.text("environment", "dev")
+environment = dbutils.widgets.get("environment")
+
+if environment == "dev":
+    storage_account = "pptrainingsa"
+    container = "myntra-clickstream"
+
+    catalog = "myntra_de"
+elif environment == "prod":
+    storage_account = "pptrainingsaprod"
+    container = "myntra-clickstream-prod"
+
+    catalog = "myntra_de_prod"
+else:
+    raise ValueError(f"Unsupported Environment {environment}")
+
+# COMMAND ----------
+
+base_path = (
+    f"abfss://{container}@"
+    f"{storage_account}.dfs.core.windows.net"
+)
+
+landing_path = f"{base_path}/landing/clickstream"
+
+# Initial functional test volume
+number_of_events = 100000
+
+# Number of output files
+number_of_partitions = 20
+
+
+bronze_table = f"{catalog}.bronze.clickstream"
+
+print(f"Landing path: {landing_path}")
+print(f"Bronze Table Location: {bronze_table}")
+print(f"Events to generate: {number_of_events:,}")
+
+# COMMAND ----------
+
+products = [
+    {
+        "product_id": "P1001",
+        "product_name": "Slim Fit Cotton Shirt",
+        "brand": "Roadster",
+        "category": "Men Shirts",
+        "price": 1299
+    },
+    {
+        "product_id": "P1002",
+        "product_name": "Casual Checked Shirt",
+        "brand": "HIGHLANDER",
+        "category": "Men Shirts",
+        "price": 999
+    },
+    {
+        "product_id": "P1003",
+        "product_name": "Regular Fit T-Shirt",
+        "brand": "HRX",
+        "category": "Men T-Shirts",
+        "price": 799
+    },
+    {
+        "product_id": "P1004",
+        "product_name": "Skinny Fit Jeans",
+        "brand": "WROGN",
+        "category": "Men Jeans",
+        "price": 1799
+    },
+    {
+        "product_id": "P1005",
+        "product_name": "Printed Kurta",
+        "brand": "Anouk",
+        "category": "Women Kurtas",
+        "price": 1499
+    },
+    {
+        "product_id": "P1006",
+        "product_name": "Floral Dress",
+        "brand": "DressBerry",
+        "category": "Women Dresses",
+        "price": 1899
+    },
+    {
+        "product_id": "P1007",
+        "product_name": "Running Shoes",
+        "brand": "Puma",
+        "category": "Sports Shoes",
+        "price": 3499
+    },
+    {
+        "product_id": "P1008",
+        "product_name": "Casual Sneakers",
+        "brand": "Nike",
+        "category": "Casual Shoes",
+        "price": 4999
+    },
+    {
+        "product_id": "P1009",
+        "product_name": "Leather Handbag",
+        "brand": "Baggit",
+        "category": "Handbags",
+        "price": 2299
+    },
+    {
+        "product_id": "P1010",
+        "product_name": "Analog Watch",
+        "brand": "Fastrack",
+        "category": "Watches",
+        "price": 1999
+    }
+]
+
+cities = [
+    "Mumbai",
+    "Delhi",
+    "Bengaluru",
+    "Hyderabad",
+    "Chennai",
+    "Pune",
+    "Kolkata",
+    "Ahmedabad"
+]
+
+devices = [
+    "ANDROID",
+    "IOS",
+    "WEB"
+]
+
+search_queries = [
+    "men shirts",
+    "women dresses",
+    "running shoes",
+    "casual t shirts",
+    "blue jeans",
+    "kurta for women",
+    "sports shoes",
+    "handbags",
+    "watches",
+    "sneakers"
+]
+
+event_types = [
+    "APP_OPEN",
+    "SEARCH",
+    "FILTER_APPLIED",
+    "LISTING_IMPRESSION",
+    "PRODUCT_VIEW",
+    "WISHLIST",
+    "ADD_TO_CART",
+    "REMOVE_FROM_CART",
+    "CHECKOUT",
+    "PURCHASE"
+]
+
+# COMMAND ----------
+
+def generate_clickstream_event(event_number):
+    
+    random.seed(event_number)
+
+    event_type = random.choices(
+        population=event_types,
+        weights=[
+            5,    # APP_OPEN
+            10,   # SEARCH
+            5,    # FILTER_APPLIED
+            40,   # LISTING_IMPRESSION
+            20,   # PRODUCT_VIEW
+            4,    # WISHLIST
+            6,    # ADD_TO_CART
+            2,    # REMOVE_FROM_CART
+            3,    # CHECKOUT
+            5     # PURCHASE
+        ],
+        k=1
+    )[0]
+
+    selected_product = random.choice(products)
+
+    # Random event time during the previous 24 hours
+    event_time = (
+        datetime.utcnow()
+        - timedelta(
+            seconds=random.randint(0, 24 * 60 * 60)
+        )
+    )
+
+    user_number = random.randint(1, 10_000)
+
+    user_id = f"USER_{user_number:08d}"
+
+    session_number = random.randint(1, 5)
+
+    session_id = (
+        f"SESSION_{user_number:08d}_"
+        f"{session_number:03d}"
+    )
+
+    visible_products = []
+
+    # A listing impression contains 4–6 visible products
+    if event_type == "LISTING_IMPRESSION":
+
+        number_of_visible_products = random.randint(4, 6)
+
+        selected_products = random.sample(
+            products,
+            number_of_visible_products
+        )
+
+        visible_products = [
+            product["product_id"]
+            for product in selected_products
+        ]
+
+        # No single product is required for a batched impression
+        product_id = None
+        product_name = None
+        brand = None
+        category = None
+        price = None
+
+    else:
+
+        product_id = selected_product["product_id"]
+        product_name = selected_product["product_name"]
+        brand = selected_product["brand"]
+        category = selected_product["category"]
+        price = selected_product["price"]
+
+    # Search query is mainly relevant for search/listing events
+    if event_type in [
+        "SEARCH",
+        "FILTER_APPLIED",
+        "LISTING_IMPRESSION"
+    ]:
+        search_query = random.choice(search_queries)
+    else:
+        search_query = None
+
+    # Add a small number of intentionally invalid records.
+    # These will be used to test Silver data-quality checks.
+    if event_number % 10_000 == 0:
+        user_id = None
+
+    return {
+        "event_id": f"EVT_{event_number:012d}",
+        "user_id": user_id,
+        "session_id": session_id,
+        "event_type": event_type,
+        "event_timestamp": event_time,
+        "product_id": product_id,
+        "product_name": product_name,
+        "brand": brand,
+        "category": category,
+        "price": price,
+        "search_query": search_query,
+        "device_type": random.choice(devices),
+        "city": random.choice(cities),
+        "visible_products": visible_products,
+        "page_name": (
+            "SEARCH_RESULTS"
+            if event_type == "LISTING_IMPRESSION"
+            else "PRODUCT_DETAIL"
+            if event_type == "PRODUCT_VIEW"
+            else "HOME"
+        )
+    }
+
+# COMMAND ----------
+
+
+event_start = spark.read.table(bronze_table).count()
+
+event_rdd = (
+    spark.sparkContext
+         .parallelize(
+             range(
+                 event_start,
+                 event_start + number_of_events
+             ),
+             number_of_partitions
+         )
+         .map(generate_clickstream_event)
+)
+
+clickstream_df = spark.createDataFrame(event_rdd)
+
+# COMMAND ----------
+
+# DBTITLE 1,Cell 6
+(
+    clickstream_df
+        .repartition(number_of_partitions)
+        .write
+        .mode("append")
+        .json(landing_path)
+)
+
+# COMMAND ----------
+
+spark.read.json(landing_path).printSchema()

@@ -1,0 +1,121 @@
+# A sample job for myntra_clickstream.
+
+resources:
+  jobs:
+    Myntra_Clickstream_Pipeline:
+      name: Myntra_Clickstream_Pipeline
+
+      max_concurrent_runs: 1
+
+      trigger:
+        # Run this job every day, exactly one day from the last run; see https://docs.databricks.com/api/workspace/jobs/create#trigger
+        periodic:
+          interval: 20
+          unit: MINUTES
+
+      email_notifications:
+       on_failure:
+         - bhatia08sahil@gmail.com
+
+      parameters:
+        - name: environment
+          default: ${bundle.target}
+
+        - name: pipeline_run_id
+          default: "{{job.run_id}}"
+
+      tasks:
+
+        - task_key: data_generation
+
+          notebook_task:
+            notebook_path: ../src/generator/generate_clickstream_data.py 
+            base_parameters:
+              environment: ${bundle.target}
+
+          existing_cluster_id: 0801-122138-prirhggy
+
+          timeout_seconds: 1800
+
+          max_retries: 3
+          min_retry_interval_millis: 300000
+          retry_on_timeout: true
+
+        - task_key: bronze
+          
+          depends_on:
+            - task_key: data_generation
+
+          notebook_task:
+            notebook_path: ../src/bronze/bronze.py
+            base_parameters:
+              environment: ${bundle.target}
+              pipeline_run_id: "{{job.run_id}}"
+
+          existing_cluster_id: 0801-122138-prirhggy
+
+          timeout_seconds: 1800
+
+          max_retries: 3
+          min_retry_interval_millis: 300000
+          retry_on_timeout: true
+
+
+        - task_key: silver
+
+          depends_on:
+            - task_key: bronze
+
+          notebook_task:
+            notebook_path: ../src/silver/silver.py
+            base_parameters:
+              environment: ${bundle.target}
+              pipeline_run_id: "{{job.run_id}}"
+
+          existing_cluster_id: 0801-122138-prirhggy
+
+          timeout_seconds: 1800
+
+          max_retries: 3
+          min_retry_interval_millis: 300000
+          retry_on_timeout: true
+
+
+        - task_key: gold
+
+          depends_on:
+            - task_key: silver
+
+          notebook_task:
+            notebook_path: ../src/gold/gold.py
+            base_parameters:
+              environment: ${bundle.target}
+              pipeline_run_id: "{{job.run_id}}"
+
+          existing_cluster_id: 0801-122138-prirhggy
+
+          timeout_seconds: 1800
+
+          max_retries: 3
+          min_retry_interval_millis: 300000
+          retry_on_timeout: true
+
+
+        - task_key: validation
+
+          depends_on:
+            - task_key: gold
+
+          notebook_task:
+            notebook_path: ../src/validation/validation.py
+            base_parameters:
+              environment: ${bundle.target}
+              pipeline_run_id: "{{job.run_id}}"
+
+          existing_cluster_id: 0801-122138-prirhggy
+
+          timeout_seconds: 1800
+
+          max_retries: 3
+          min_retry_interval_millis: 300000
+          retry_on_timeout: true
