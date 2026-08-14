@@ -1,4 +1,8 @@
 # Databricks notebook source
+# /// script
+# [tool.databricks.environment]
+# environment_version = "5"
+# ///
 from pyspark.sql import functions as F
 from pyspark.sql.types import *
 from datetime import datetime, timedelta
@@ -277,8 +281,7 @@ def generate_clickstream_event(event_number):
 
 # COMMAND ----------
 
-
-event_start = spark.read.table(bronze_table).count()
+event_start = spark.read.table(bronze_table).count() if spark.catalog.tableExists(bronze_table) else 0 
 
 event_rdd = (
     spark.sparkContext
