@@ -379,13 +379,3 @@ display(spark.sql(f"describe history {gold_table} limit 1"))
 
 # COMMAND ----------
 
-# MAGIC %sql
-# MAGIC update myntra_de.metadata.pipeline_control set last_processed_version = 10 where pipeline_name = "gold_cdf_pipeline"
-
-# COMMAND ----------
-
-# MAGIC %sql
-# MAGIC select * from myntra_de.gold.product_performance_metrics
-
-# COMMAND ----------
-
