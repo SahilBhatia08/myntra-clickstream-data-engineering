@@ -1,6 +1,14 @@
-name: Databricks Bundle Validation
+name: Databricks CI/CD
 
 on:
+  push:
+    branches:
+      - develop
+
+  pull_request:
+    branches:
+      - develop
+
   workflow_dispatch:
 
 permissions:
@@ -8,19 +16,22 @@ permissions:
   contents: read
 
 jobs:
+
   validate:
+    name: Validate Databricks Bundle
     runs-on: ubuntu-latest
 
     environment: dev
 
     steps:
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Install Databricks CLI
         uses: databricks/setup-cli@main
 
-      - name: Validate Databricks Bundle
+      - name: Validate Bundle
         env:
           DATABRICKS_HOST: ${{ vars.DATABRICKS_HOST }}
           ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
@@ -28,3 +39,31 @@ jobs:
           ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
         run: |
           databricks bundle validate -t dev
+
+
+  deploy-dev:
+    name: Deploy to DEV
+    needs: validate
+
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+
+    runs-on: ubuntu-latest
+
+    environment: dev
+
+    steps:
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Databricks CLI
+        uses: databricks/setup-cli@main
+
+      - name: Deploy Bundle to DEV
+        env:
+          DATABRICKS_HOST: ${{ vars.DATABRICKS_HOST }}
+          ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+          ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+        run: |
+          databricks bundle deploy -t dev
