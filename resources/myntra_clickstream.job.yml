@@ -34,6 +34,8 @@ resources:
             base_parameters:
               environment: ${bundle.target}
 
+          existing_cluster_id: 0819-103841-hupoqraa
+
           timeout_seconds: 1800
 
           max_retries: 3
