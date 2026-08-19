@@ -34,8 +34,6 @@ resources:
             base_parameters:
               environment: ${bundle.target}
 
-          existing_cluster_id: 0801-122138-prirhggy
-
           timeout_seconds: 1800
 
           max_retries: 3
@@ -52,8 +50,6 @@ resources:
             base_parameters:
               environment: ${bundle.target}
               pipeline_run_id: "{{job.run_id}}"
-
-          existing_cluster_id: 0801-122138-prirhggy
 
           timeout_seconds: 1800
 
@@ -73,8 +69,6 @@ resources:
               environment: ${bundle.target}
               pipeline_run_id: "{{job.run_id}}"
 
-          existing_cluster_id: 0801-122138-prirhggy
-
           timeout_seconds: 1800
 
           max_retries: 3
@@ -92,8 +86,6 @@ resources:
             base_parameters:
               environment: ${bundle.target}
               pipeline_run_id: "{{job.run_id}}"
-
-          existing_cluster_id: 0801-122138-prirhggy
 
           timeout_seconds: 1800
 
@@ -113,10 +105,10 @@ resources:
               environment: ${bundle.target}
               pipeline_run_id: "{{job.run_id}}"
 
-          existing_cluster_id: 0801-122138-prirhggy
-
           timeout_seconds: 1800
 
           max_retries: 3
           min_retry_interval_millis: 300000
           retry_on_timeout: true
+
+      performance_target: PERFORMANCE_OPTIMIZED

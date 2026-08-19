@@ -11,12 +11,12 @@ if environment == "dev":
     storage_account = "pptrainingsa"
     container = "myntra-clickstream"
 
-    catalog = "myntra_de"
+    catalog = "myntra_clickstream_de"
 elif environment == "prod":
     storage_account = "pptrainingsaprod"
     container = "myntra-clickstream-prod"
 
-    catalog = "myntra_de_prod"
+    catalog = "myntra_clickstream_de_prod"
 else:
     raise ValueError(f"Unsupported Environment {environment}")
 

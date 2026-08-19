@@ -15,12 +15,12 @@ if environment == "dev":
     storage_account = "pptrainingsa"
     container = "myntra-clickstream"
 
-    catalog = "myntra_de"
+    catalog = "myntra_clickstream_de"
 elif environment == "prod":
     storage_account = "pptrainingsaprod"
     container = "myntra-clickstream-prod"
 
-    catalog = "myntra_de_prod"
+    catalog = "myntra_clickstream_de_prod"
 else:
     raise ValueError(f"Unsupported Environment {environment}")
 
@@ -367,15 +367,8 @@ display(spark.sql(f"describe history {gold_table} limit 1"))
 
 # COMMAND ----------
 
-# MAGIC %sql
-# MAGIC select * from myntra_de.gold.product_performance_metrics;
+display(spark.sql(f"select * from {catalog}.gold.product_performance_metrics"));
 
 # COMMAND ----------
 
-# MAGIC %sql
-# MAGIC select * from myntra_de.metadata.pipeline_audit;
-# MAGIC
-# MAGIC -- select * from myntra_de.metadata.pipeline_control;
-
-# COMMAND ----------
-
+display(spark.sql(f"select * from {catalog}.metadata.pipeline_audit"));

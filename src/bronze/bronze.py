@@ -16,12 +16,12 @@ if environment == "dev":
     storage_account = "pptrainingsa"
     container = "myntra-clickstream"
 
-    catalog = "myntra_de"
+    catalog = "myntra_clickstream_de"
 elif environment == "prod":
     storage_account = "pptrainingsaprod"
-    container = "myntra-clickstream-prod"
+    container = "myntra_clickstream_de_prod"
 
-    catalog = "myntra_de_prod"
+    catalog = "myntra_clickstream_de_prod"
 else:
     raise ValueError(f"Unsupported Environment {environment}")
 
@@ -158,7 +158,7 @@ def process_bronze_batch(batch_df, batch_id):
     (
         batch_df.write.format("delta")
         .mode("append")
-        .saveAsTable("myntra_de.bronze.clickstream")
+        .saveAsTable(f"{catalog}.bronze.clickstream")
     )
 
     records_written = records_read
@@ -241,6 +241,11 @@ except Exception as error:
     write_pipeline_audit(
         run_status="FAILED",
         run_end_timestamp=(run_end_timestamp),
+        records_read=0,
+        records_written=0,
+        files_processed=0,
+        batch_id=F.lit(None).cast("bigint"),
+        checkpoint_path=bronze_checkpoint,
         error_message=(error_message),
         target_start_version=bronze_start_version,
         target_end_version=bronze_end_version,
@@ -252,19 +257,13 @@ except Exception as error:
 
 # COMMAND ----------
 
-# MAGIC %sql
-# MAGIC select count(*) as total_rows from myntra_de.bronze.clickstream
+display(spark.sql(f"select count(*) as total_rows from {catalog}.bronze.clickstream"))
 
 # COMMAND ----------
 
 display(spark.sql(f"describe history {bronze_table} limit 1").collect()[0]["version"]);
-display(spark.read.table("myntra_de.metadata.pipeline_audit"))
+display(spark.read.table(f"{catalog}.metadata.pipeline_audit"))
 
 # COMMAND ----------
 
-display(spark.sql("describe history myntra_de.silver.clickstream_events"));
-
-# COMMAND ----------
-
-# MAGIC %sql
-# MAGIC select * from myntra_de.metadata.pipeline_control;
+display(spark.sql(f"select * from {catalog}.metadata.pipeline_control"));
