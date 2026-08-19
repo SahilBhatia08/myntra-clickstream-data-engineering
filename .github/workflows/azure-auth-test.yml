@@ -1,4 +1,4 @@
-name: Azure OIDC Authentication Test
+name: Databricks Bundle Validation
 
 on:
   workflow_dispatch:
@@ -8,19 +8,21 @@ permissions:
   contents: read
 
 jobs:
-  azure-auth:
+  validate:
     runs-on: ubuntu-latest
 
     environment: dev
 
     steps:
-      - name: Azure Login
-        uses: azure/login@v2
-        with:
-          client-id: ${{ vars.AZURE_CLIENT_ID }}
-          tenant-id: ${{ vars.AZURE_TENANT_ID }}
-          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Verify Azure Authentication
+      - name: Install Databricks CLI
+        uses: databricks/setup-cli@main
+
+      - name: Validate Databricks Bundle
+        env:
+          DATABRICKS_HOST: ${{ vars.DATABRICKS_HOST }}
+          DATABRICKS_CLIENT_ID: ${{ vars.DATABRICKS_CLIENT_ID }}
         run: |
-          az account show
+          databricks bundle validate -t dev
