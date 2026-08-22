@@ -392,9 +392,7 @@ try:
 
         silver_df.explain("formatted")
 
-        silver_dedup_df = silver_df.dropDuplicates(["silver_event_key"]).persist(
-            StorageLevel.MEMORY_AND_DISK
-        )
+        silver_dedup_df = silver_df.dropDuplicates(["silver_event_key"])
 
         silver_dedup_df.explain("formatted")
 
