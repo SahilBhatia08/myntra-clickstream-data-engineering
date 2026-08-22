@@ -48,7 +48,7 @@ bronze_table = f"{catalog}.bronze.clickstream"
 # ============================================================
 
 # Total number of events for this test
-number_of_events = 250_000
+number_of_events = 500_000
 
 # Number of simulated traffic batches
 number_of_batches = 20
@@ -557,32 +557,138 @@ def generate_clickstream_event(
 
 # COMMAND ----------
 
-event_start = spark.read.table(bronze_table).count() if spark.catalog.tableExists(bronze_table) else 0 
+# ============================================================
+# SIMULATED TRAFFIC WINDOW
+# ============================================================
 
-event_rdd = (
-    spark.sparkContext
-         .parallelize(
-             range(
-                 event_start,
-                 event_start + number_of_events
-             ),
-             number_of_partitions
-         )
-         .map(generate_clickstream_event)
+simulation_start = datetime.utcnow()
+
+batch_duration_seconds = (
+    traffic_window_minutes * 60
+) // number_of_batches
+
+
+print(
+    f"Simulation start : {simulation_start}"
 )
 
-clickstream_df = spark.createDataFrame(event_rdd)
+print(
+    f"Batch duration   : {batch_duration_seconds} seconds"
+)
+
+
+
+# COMMAND ----------
+
+# ============================================================
+# GENERATE TRAFFIC BATCHES
+# ============================================================
+
+for batch_number in range(number_of_batches):
+
+    batch_start_time = (
+        simulation_start
+        + timedelta(
+            seconds=batch_number * batch_duration_seconds
+        )
+    )
+
+    batch_event_start = (
+        event_start
+        + batch_number * events_per_batch
+    )
+
+    batch_event_end = (
+        batch_event_start
+        + events_per_batch
+    )
+
+    print(
+        f"Generating batch "
+        f"{batch_number + 1}/{number_of_batches} "
+        f"| Events: "
+        f"{batch_event_start:,} - "
+        f"{batch_event_end - 1:,} "
+        f"| Event time: "
+        f"{batch_start_time}"
+    )
+
+
+    # --------------------------------------------------------
+    # Generate events
+    # --------------------------------------------------------
+
+    batch_rdd = (
+        spark.sparkContext
+            .parallelize(
+                range(
+                    batch_event_start,
+                    batch_event_end
+                ),
+                number_of_partitions
+            )
+            .map(
+                lambda event_number:
+                    generate_clickstream_event(
+                        event_number,
+                        batch_number,
+                        batch_start_time,
+                        batch_duration_seconds
+                    )
+            )
+    )
+
+
+    batch_df = spark.createDataFrame(
+        batch_rdd
+    )
+
+
+    # --------------------------------------------------------
+    # Write batch
+    # --------------------------------------------------------
+
+    (
+        batch_df
+            .repartition(number_of_partitions)
+            .write
+            .mode("append")
+            .json(landing_path)
+    )
+
+
+    print(
+        f"Batch {batch_number + 1} written successfully"
+    )
+
+# COMMAND ----------
+
+# event_start = spark.read.table(bronze_table).count() if spark.catalog.tableExists(bronze_table) else 0 
+
+# event_rdd = (
+#     spark.sparkContext
+#          .parallelize(
+#              range(
+#                  event_start,
+#                  event_start + number_of_events
+#              ),
+#              number_of_partitions
+#          )
+#          .map(generate_clickstream_event)
+# )
+
+# clickstream_df = spark.createDataFrame(event_rdd)
 
 # COMMAND ----------
 
 # DBTITLE 1,Cell 6
-(
-    clickstream_df
-        .repartition(number_of_partitions)
-        .write
-        .mode("append")
-        .json(landing_path)
-)
+# (
+#     clickstream_df
+#         .repartition(number_of_partitions)
+#         .write
+#         .mode("append")
+#         .json(landing_path)
+# )
 
 # COMMAND ----------
 
