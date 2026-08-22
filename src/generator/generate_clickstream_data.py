@@ -197,23 +197,23 @@ product_types = [
 ]
 
 # Generate product catalog
-products = []
+# products = []
 
-for i in range(1, number_of_products + 1):
+# for i in range(1, number_of_products + 1):
 
-    product_id = f"P{i:07d}"
+#     product_id = f"P{i:07d}"
 
-    product = {
-        "product_id": product_id,
-        "product_name": f"{random.choice(product_types)} {i}",
-        "brand": brands[i % len(brands)],
-        "category": categories[i % len(categories)],
-        "price": random.randint(499, 4999)
-    }
+#     product = {
+#         "product_id": product_id,
+#         "product_name": f"{random.choice(product_types)} {i}",
+#         "brand": brands[i % len(brands)],
+#         "category": categories[i % len(categories)],
+#         "price": random.randint(499, 4999)
+#     }
 
-    products.append(product)
+#     products.append(product)
 
-print(f"Generated {len(products):,} products")
+# print(f"Generated {len(products):,} products")
 
 # COMMAND ----------
 
@@ -370,7 +370,9 @@ def generate_clickstream_event(
     # PRODUCT
     # ========================================================
 
-    selected_product = random.choice(products)
+    product_number = random.randint(1, number_of_products)
+
+    product_id = f"P{product_number:07d}"
 
 
     # ========================================================
@@ -428,14 +430,14 @@ def generate_clickstream_event(
             6
         )
 
-        selected_products = random.sample(
-            products,
+        visible_product_numbers = random.sample(
+            range(1, number_of_products + 1),
             number_of_visible_products
         )
 
         visible_products = [
-            product["product_id"]
-            for product in selected_products
+            f"P{product_number:07d}"
+            for product_number in visible_product_numbers
         ]
 
         product_id = None
@@ -446,11 +448,16 @@ def generate_clickstream_event(
 
     else:
 
-        product_id = selected_product["product_id"]
-        product_name = selected_product["product_name"]
-        brand = selected_product["brand"]
-        category = selected_product["category"]
-        price = selected_product["price"]
+        product_id = product_id
+        product_type =  product_types[
+            product_number % len(product_types)
+        ]
+        product_name = f"{product_type} {product_number}"
+        brand = brands[product_number % len(brands)]
+        category = categories[
+            product_number % len(categories)
+        ]
+        price = 499 + (product_number * 37) % 4501
 
 
     # ========================================================
