@@ -8,23 +8,30 @@ from pyspark.sql.types import *
 from datetime import datetime, timedelta
 import random
 
+# ============================================================
+# ENVIRONMENT
+# ============================================================
+
 dbutils.widgets.text("environment", "dev")
 environment = dbutils.widgets.get("environment")
 
 if environment == "dev":
     storage_account = "pptrainingsa"
     container = "myntra-clickstream"
-
     catalog = "myntra_clickstream_de"
+
 elif environment == "prod":
     storage_account = "pptrainingsaprod"
     container = "myntra-clickstream-prod"
-
     catalog = "myntra_clickstream_de_prod"
+
 else:
     raise ValueError(f"Unsupported Environment {environment}")
 
-# COMMAND ----------
+
+# ============================================================
+# PATHS
+# ============================================================
 
 base_path = (
     f"abfss://{container}@"
@@ -33,18 +40,107 @@ base_path = (
 
 landing_path = f"{base_path}/landing/clickstream"
 
-# Initial functional test volume
-number_of_events = 100000
+bronze_table = f"{catalog}.bronze.clickstream"
 
-# Number of output files
+
+# ============================================================
+# LOAD TEST CONFIGURATION
+# ============================================================
+
+# Total number of events for this test
+number_of_events = 250_000
+
+# Number of simulated traffic batches
+number_of_batches = 20
+
+# Simulated production traffic window
+traffic_window_minutes = 20
+
+# Number of output partitions/files
 number_of_partitions = 20
 
 
-bronze_table = f"{catalog}.bronze.clickstream"
+if number_of_events % number_of_batches != 0:
+    raise ValueError(
+        "number_of_events must be divisible by number_of_batches"
+    )
 
-print(f"Landing path: {landing_path}")
-print(f"Bronze Table Location: {bronze_table}")
-print(f"Events to generate: {number_of_events:,}")
+
+events_per_batch = (
+    number_of_events // number_of_batches
+)
+
+
+# ============================================================
+# EXISTING EVENT OFFSET
+# ============================================================
+
+event_start = (
+    spark.read.table(bronze_table).count()
+    if spark.catalog.tableExists(bronze_table)
+    else 0
+)
+
+
+print("=" * 60)
+print("LOAD TEST CONFIGURATION")
+print("=" * 60)
+
+print(f"Environment              : {environment}")
+print(f"Total events             : {number_of_events:,}")
+print(f"Number of batches        : {number_of_batches:,}")
+print(f"Events per batch         : {events_per_batch:,}")
+print(f"Traffic window           : {traffic_window_minutes} minutes")
+print(f"Output partitions        : {number_of_partitions}")
+print(f"Existing event offset    : {event_start:,}")
+print(f"Landing path             : {landing_path}")
+
+print("=" * 60)
+
+# COMMAND ----------
+
+# from pyspark.sql import functions as F
+# from pyspark.sql.types import *
+# from datetime import datetime, timedelta
+# import random
+
+# dbutils.widgets.text("environment", "dev")
+# environment = dbutils.widgets.get("environment")
+
+# if environment == "dev":
+#     storage_account = "pptrainingsa"
+#     container = "myntra-clickstream"
+
+#     catalog = "myntra_clickstream_de"
+# elif environment == "prod":
+#     storage_account = "pptrainingsaprod"
+#     container = "myntra-clickstream-prod"
+
+#     catalog = "myntra_clickstream_de_prod"
+# else:
+#     raise ValueError(f"Unsupported Environment {environment}")
+
+# COMMAND ----------
+
+# base_path = (
+#     f"abfss://{container}@"
+#     f"{storage_account}.dfs.core.windows.net"
+# )
+
+# landing_path = f"{base_path}/landing/clickstream"
+
+# # Initial functional test volume
+# number_of_events = 100000
+
+# # Number of output files
+# number_of_partitions = 20
+
+
+# bronze_table = f"{catalog}.bronze.clickstream"
+
+# print(f"Landing path: {landing_path}")
+# print(f"Bronze Table Location: {bronze_table}")
+# print(f"Events to generate: {number_of_events:,}")
 
 # COMMAND ----------
 
@@ -166,9 +262,18 @@ event_types = [
 
 # COMMAND ----------
 
-def generate_clickstream_event(event_number):
-    
+def generate_clickstream_event(
+    event_number,
+    batch_number,
+    batch_start_time,
+    batch_duration_seconds
+):
+
     random.seed(event_number)
+
+    # ========================================================
+    # EVENT TYPE
+    # ========================================================
 
     event_type = random.choices(
         population=event_types,
@@ -187,33 +292,68 @@ def generate_clickstream_event(event_number):
         k=1
     )[0]
 
+
+    # ========================================================
+    # PRODUCT
+    # ========================================================
+
     selected_product = random.choice(products)
 
-    # Random event time during the previous 24 hours
-    event_time = (
-        datetime.utcnow()
-        - timedelta(
-            seconds=random.randint(0, 24 * 60 * 60)
-        )
+
+    # ========================================================
+    # EVENT TIMESTAMP
+    # ========================================================
+
+    random_offset = random.randint(
+        0,
+        batch_duration_seconds - 1
     )
 
-    user_number = random.randint(1, 10_000)
+    event_time = (
+        batch_start_time
+        + timedelta(seconds=random_offset)
+    )
+
+
+    # ========================================================
+    # USER
+    # ========================================================
+
+    user_number = random.randint(
+        1,
+        10_000
+    )
 
     user_id = f"USER_{user_number:08d}"
 
-    session_number = random.randint(1, 5)
+
+    # ========================================================
+    # SESSION
+    # ========================================================
+
+    session_number = random.randint(
+        1,
+        5
+    )
 
     session_id = (
         f"SESSION_{user_number:08d}_"
         f"{session_number:03d}"
     )
 
+
+    # ========================================================
+    # LISTING IMPRESSION
+    # ========================================================
+
     visible_products = []
 
-    # A listing impression contains 4–6 visible products
     if event_type == "LISTING_IMPRESSION":
 
-        number_of_visible_products = random.randint(4, 6)
+        number_of_visible_products = random.randint(
+            4,
+            6
+        )
 
         selected_products = random.sample(
             products,
@@ -225,7 +365,6 @@ def generate_clickstream_event(event_number):
             for product in selected_products
         ]
 
-        # No single product is required for a batched impression
         product_id = None
         product_name = None
         brand = None
@@ -240,20 +379,48 @@ def generate_clickstream_event(event_number):
         category = selected_product["category"]
         price = selected_product["price"]
 
-    # Search query is mainly relevant for search/listing events
+
+    # ========================================================
+    # SEARCH QUERY
+    # ========================================================
+
     if event_type in [
         "SEARCH",
         "FILTER_APPLIED",
         "LISTING_IMPRESSION"
     ]:
-        search_query = random.choice(search_queries)
+        search_query = random.choice(
+            search_queries
+        )
     else:
         search_query = None
 
-    # Add a small number of intentionally invalid records.
-    # These will be used to test Silver data-quality checks.
+
+    # ========================================================
+    # INTENTIONAL DATA QUALITY ISSUE
+    # ========================================================
+
     if event_number % 10_000 == 0:
         user_id = None
+
+
+    # ========================================================
+    # PAGE
+    # ========================================================
+
+    if event_type == "LISTING_IMPRESSION":
+        page_name = "SEARCH_RESULTS"
+
+    elif event_type == "PRODUCT_VIEW":
+        page_name = "PRODUCT_DETAIL"
+
+    else:
+        page_name = "HOME"
+
+
+    # ========================================================
+    # FINAL RECORD
+    # ========================================================
 
     return {
         "event_id": f"EVT_{event_number:012d}",
@@ -270,14 +437,123 @@ def generate_clickstream_event(event_number):
         "device_type": random.choice(devices),
         "city": random.choice(cities),
         "visible_products": visible_products,
-        "page_name": (
-            "SEARCH_RESULTS"
-            if event_type == "LISTING_IMPRESSION"
-            else "PRODUCT_DETAIL"
-            if event_type == "PRODUCT_VIEW"
-            else "HOME"
-        )
+        "page_name": page_name
     }
+
+# COMMAND ----------
+
+# def generate_clickstream_event(event_number):
+    
+#     random.seed(event_number)
+
+#     event_type = random.choices(
+#         population=event_types,
+#         weights=[
+#             5,    # APP_OPEN
+#             10,   # SEARCH
+#             5,    # FILTER_APPLIED
+#             40,   # LISTING_IMPRESSION
+#             20,   # PRODUCT_VIEW
+#             4,    # WISHLIST
+#             6,    # ADD_TO_CART
+#             2,    # REMOVE_FROM_CART
+#             3,    # CHECKOUT
+#             5     # PURCHASE
+#         ],
+#         k=1
+#     )[0]
+
+#     selected_product = random.choice(products)
+
+#     # Random event time during the previous 24 hours
+#     event_time = (
+#         datetime.utcnow()
+#         - timedelta(
+#             seconds=random.randint(0, 24 * 60 * 60)
+#         )
+#     )
+
+#     user_number = random.randint(1, 10_000)
+
+#     user_id = f"USER_{user_number:08d}"
+
+#     session_number = random.randint(1, 5)
+
+#     session_id = (
+#         f"SESSION_{user_number:08d}_"
+#         f"{session_number:03d}"
+#     )
+
+#     visible_products = []
+
+#     # A listing impression contains 4–6 visible products
+#     if event_type == "LISTING_IMPRESSION":
+
+#         number_of_visible_products = random.randint(4, 6)
+
+#         selected_products = random.sample(
+#             products,
+#             number_of_visible_products
+#         )
+
+#         visible_products = [
+#             product["product_id"]
+#             for product in selected_products
+#         ]
+
+#         # No single product is required for a batched impression
+#         product_id = None
+#         product_name = None
+#         brand = None
+#         category = None
+#         price = None
+
+#     else:
+
+#         product_id = selected_product["product_id"]
+#         product_name = selected_product["product_name"]
+#         brand = selected_product["brand"]
+#         category = selected_product["category"]
+#         price = selected_product["price"]
+
+#     # Search query is mainly relevant for search/listing events
+#     if event_type in [
+#         "SEARCH",
+#         "FILTER_APPLIED",
+#         "LISTING_IMPRESSION"
+#     ]:
+#         search_query = random.choice(search_queries)
+#     else:
+#         search_query = None
+
+#     # Add a small number of intentionally invalid records.
+#     # These will be used to test Silver data-quality checks.
+#     if event_number % 10_000 == 0:
+#         user_id = None
+
+#     return {
+#         "event_id": f"EVT_{event_number:012d}",
+#         "user_id": user_id,
+#         "session_id": session_id,
+#         "event_type": event_type,
+#         "event_timestamp": event_time,
+#         "product_id": product_id,
+#         "product_name": product_name,
+#         "brand": brand,
+#         "category": category,
+#         "price": price,
+#         "search_query": search_query,
+#         "device_type": random.choice(devices),
+#         "city": random.choice(cities),
+#         "visible_products": visible_products,
+#         "page_name": (
+#             "SEARCH_RESULTS"
+#             if event_type == "LISTING_IMPRESSION"
+#             else "PRODUCT_DETAIL"
+#             if event_type == "PRODUCT_VIEW"
+#             else "HOME"
+#         )
+#     }
 
 # COMMAND ----------
 
