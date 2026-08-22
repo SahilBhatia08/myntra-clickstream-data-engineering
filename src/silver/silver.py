@@ -200,7 +200,7 @@ try:
             .option("readChangeFeed", "true")
             .option("startingVersion", starting_version)
             .table(bronze_table)
-            .persist(StorageLevel.MEMORY_AND_DISK)
+            # .persist(StorageLevel.MEMORY_AND_DISK)
         )
 
         records_read = bronze_cdf_df.count()
@@ -300,7 +300,8 @@ try:
             "is_valid",
             (F.size(F.col("validation_errors")) == 0)
             | (F.col("validation_errors").isNull()),
-        ).persist(StorageLevel.MEMORY_AND_DISK)
+        )
+        # .persist(StorageLevel.MEMORY_AND_DISK)
 
         valid_events_df = validated_df.filter(F.col("is_valid"))
 
@@ -491,9 +492,9 @@ try:
             target_end_version=silver_end_version,
         )
 
-        silver_dedup_df.unpersist()
-        validated_df.unpersist()
-        bronze_cdf_df.unpersist()
+        # silver_dedup_df.unpersist()
+        # validated_df.unpersist()
+        # bronze_cdf_df.unpersist()
 
         print("Silver pipeline " "completed successfully.")
 
