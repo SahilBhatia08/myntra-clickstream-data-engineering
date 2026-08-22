@@ -1,6 +1,7 @@
 # Databricks notebook source
 from pyspark.sql import functions as F
 from pyspark.sql.types import *
+from pyspark import StorageLevel
 from delta.tables import DeltaTable
 from datetime import datetime
 import traceback
@@ -199,6 +200,7 @@ try:
             .option("readChangeFeed", "true")
             .option("startingVersion", starting_version)
             .table(bronze_table)
+            .persist(StorageLevel.MEMORY_AND_DISK)
         )
 
         records_read = bronze_cdf_df.count()
@@ -298,7 +300,7 @@ try:
             "is_valid",
             (F.size(F.col("validation_errors")) == 0)
             | (F.col("validation_errors").isNull()),
-        )
+        ).persist(StorageLevel.MEMORY_AND_DISK)
 
         valid_events_df = validated_df.filter(F.col("is_valid"))
 
@@ -390,7 +392,9 @@ try:
 
         silver_df.explain("formatted")
 
-        silver_dedup_df = silver_df.dropDuplicates(["silver_event_key"])
+        silver_dedup_df = silver_df.dropDuplicates(["silver_event_key"]).persist(
+            StorageLevel.MEMORY_AND_DISK
+        )
 
         silver_dedup_df.explain("formatted")
 
@@ -418,13 +422,15 @@ try:
             f"describe history {silver_table} limit 1"
         ).collect()[0]["version"]
 
-        control_schema = StructType([
-            StructField("pipeline_name", StringType(), True),
-            StructField("source_table", StringType(), True),
-            StructField("last_processed_version", LongType(), False),
-            StructField("last_run_status", StringType(), True),
-            StructField("last_run_id", StringType(), True),
-        ])
+        control_schema = StructType(
+            [
+                StructField("pipeline_name", StringType(), True),
+                StructField("source_table", StringType(), True),
+                StructField("last_processed_version", LongType(), False),
+                StructField("last_run_status", StringType(), True),
+                StructField("last_run_id", StringType(), True),
+            ]
+        )
 
         control_delta = DeltaTable.forName(spark, control_table)
 
@@ -486,6 +492,10 @@ try:
             target_start_version=silver_start_version,
             target_end_version=silver_end_version,
         )
+
+        silver_dedup_df.unpersist()
+        validated_df.unpersist()
+        bronze_cdf_df.unpersist()
 
         print("Silver pipeline " "completed successfully.")
 
