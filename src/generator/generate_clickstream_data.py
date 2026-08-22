@@ -48,7 +48,7 @@ bronze_table = f"{catalog}.bronze.clickstream"
 # ============================================================
 
 # Total number of events for this test
-number_of_events = 500_000
+number_of_events = 1000000
 
 # Number of simulated traffic batches
 number_of_batches = 20
@@ -60,7 +60,7 @@ traffic_window_minutes = 20
 number_of_partitions = 20
 
 # Number of products
-number_of_products = 100_000
+number_of_products = 500_000
 
 
 if number_of_events % number_of_batches != 0:
@@ -148,7 +148,7 @@ print("=" * 60)
 # COMMAND ----------
 
 # Number of products in the synthetic marketplace
-number_of_products = 100_000
+number_of_products = 500_000
 
 brands = [
     "Roadster",
