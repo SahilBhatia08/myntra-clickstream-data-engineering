@@ -59,6 +59,9 @@ traffic_window_minutes = 20
 # Number of output partitions/files
 number_of_partitions = 20
 
+# Number of products
+number_of_products = 100_000
+
 
 if number_of_events % number_of_batches != 0:
     raise ValueError(
@@ -144,121 +147,191 @@ print("=" * 60)
 
 # COMMAND ----------
 
-products = [
-    {
-        "product_id": "P1001",
-        "product_name": "Slim Fit Cotton Shirt",
-        "brand": "Roadster",
-        "category": "Men Shirts",
-        "price": 1299
-    },
-    {
-        "product_id": "P1002",
-        "product_name": "Casual Checked Shirt",
-        "brand": "HIGHLANDER",
-        "category": "Men Shirts",
-        "price": 999
-    },
-    {
-        "product_id": "P1003",
-        "product_name": "Regular Fit T-Shirt",
-        "brand": "HRX",
-        "category": "Men T-Shirts",
-        "price": 799
-    },
-    {
-        "product_id": "P1004",
-        "product_name": "Skinny Fit Jeans",
-        "brand": "WROGN",
-        "category": "Men Jeans",
-        "price": 1799
-    },
-    {
-        "product_id": "P1005",
-        "product_name": "Printed Kurta",
-        "brand": "Anouk",
-        "category": "Women Kurtas",
-        "price": 1499
-    },
-    {
-        "product_id": "P1006",
-        "product_name": "Floral Dress",
-        "brand": "DressBerry",
-        "category": "Women Dresses",
-        "price": 1899
-    },
-    {
-        "product_id": "P1007",
-        "product_name": "Running Shoes",
-        "brand": "Puma",
-        "category": "Sports Shoes",
-        "price": 3499
-    },
-    {
-        "product_id": "P1008",
-        "product_name": "Casual Sneakers",
-        "brand": "Nike",
-        "category": "Casual Shoes",
-        "price": 4999
-    },
-    {
-        "product_id": "P1009",
-        "product_name": "Leather Handbag",
-        "brand": "Baggit",
-        "category": "Handbags",
-        "price": 2299
-    },
-    {
-        "product_id": "P1010",
-        "product_name": "Analog Watch",
-        "brand": "Fastrack",
-        "category": "Watches",
-        "price": 1999
+# Number of products in the synthetic marketplace
+number_of_products = 100_000
+
+brands = [
+    "Roadster",
+    "HIGHLANDER",
+    "HRX",
+    "WROGN",
+    "Anouk",
+    "DressBerry",
+    "Puma",
+    "Nike",
+    "Baggit",
+    "Fastrack",
+    "Adidas",
+    "Levis",
+    "MastHarbour",
+    "Libas",
+    "Tokyo Talkies"
+]
+
+categories = [
+    "Men Shirts",
+    "Men T-Shirts",
+    "Men Jeans",
+    "Women Kurtas",
+    "Women Dresses",
+    "Sports Shoes",
+    "Casual Shoes",
+    "Handbags",
+    "Watches",
+    "Beauty",
+    "Accessories"
+]
+
+product_types = [
+    "Slim Fit Shirt",
+    "Casual T-Shirt",
+    "Regular Fit Jeans",
+    "Printed Kurta",
+    "Floral Dress",
+    "Running Shoes",
+    "Casual Sneakers",
+    "Leather Handbag",
+    "Analog Watch",
+    "Sports Jacket",
+    "Cotton Top"
+]
+
+# Generate product catalog
+products = []
+
+for i in range(1, number_of_products + 1):
+
+    product_id = f"P{i:07d}"
+
+    product = {
+        "product_id": product_id,
+        "product_name": f"{random.choice(product_types)} {i}",
+        "brand": brands[i % len(brands)],
+        "category": categories[i % len(categories)],
+        "price": random.randint(499, 4999)
     }
-]
 
-cities = [
-    "Mumbai",
-    "Delhi",
-    "Bengaluru",
-    "Hyderabad",
-    "Chennai",
-    "Pune",
-    "Kolkata",
-    "Ahmedabad"
-]
+    products.append(product)
 
-devices = [
-    "ANDROID",
-    "IOS",
-    "WEB"
-]
+print(f"Generated {len(products):,} products")
 
-search_queries = [
-    "men shirts",
-    "women dresses",
-    "running shoes",
-    "casual t shirts",
-    "blue jeans",
-    "kurta for women",
-    "sports shoes",
-    "handbags",
-    "watches",
-    "sneakers"
-]
+# COMMAND ----------
 
-event_types = [
-    "APP_OPEN",
-    "SEARCH",
-    "FILTER_APPLIED",
-    "LISTING_IMPRESSION",
-    "PRODUCT_VIEW",
-    "WISHLIST",
-    "ADD_TO_CART",
-    "REMOVE_FROM_CART",
-    "CHECKOUT",
-    "PURCHASE"
-]
+# products = [
+#     {
+#         "product_id": "P1001",
+#         "product_name": "Slim Fit Cotton Shirt",
+#         "brand": "Roadster",
+#         "category": "Men Shirts",
+#         "price": 1299
+#     },
+#     {
+#         "product_id": "P1002",
+#         "product_name": "Casual Checked Shirt",
+#         "brand": "HIGHLANDER",
+#         "category": "Men Shirts",
+#         "price": 999
+#     },
+#     {
+#         "product_id": "P1003",
+#         "product_name": "Regular Fit T-Shirt",
+#         "brand": "HRX",
+#         "category": "Men T-Shirts",
+#         "price": 799
+#     },
+#     {
+#         "product_id": "P1004",
+#         "product_name": "Skinny Fit Jeans",
+#         "brand": "WROGN",
+#         "category": "Men Jeans",
+#         "price": 1799
+#     },
+#     {
+#         "product_id": "P1005",
+#         "product_name": "Printed Kurta",
+#         "brand": "Anouk",
+#         "category": "Women Kurtas",
+#         "price": 1499
+#     },
+#     {
+#         "product_id": "P1006",
+#         "product_name": "Floral Dress",
+#         "brand": "DressBerry",
+#         "category": "Women Dresses",
+#         "price": 1899
+#     },
+#     {
+#         "product_id": "P1007",
+#         "product_name": "Running Shoes",
+#         "brand": "Puma",
+#         "category": "Sports Shoes",
+#         "price": 3499
+#     },
+#     {
+#         "product_id": "P1008",
+#         "product_name": "Casual Sneakers",
+#         "brand": "Nike",
+#         "category": "Casual Shoes",
+#         "price": 4999
+#     },
+#     {
+#         "product_id": "P1009",
+#         "product_name": "Leather Handbag",
+#         "brand": "Baggit",
+#         "category": "Handbags",
+#         "price": 2299
+#     },
+#     {
+#         "product_id": "P1010",
+#         "product_name": "Analog Watch",
+#         "brand": "Fastrack",
+#         "category": "Watches",
+#         "price": 1999
+#     }
+# ]
+
+# cities = [
+#     "Mumbai",
+#     "Delhi",
+#     "Bengaluru",
+#     "Hyderabad",
+#     "Chennai",
+#     "Pune",
+#     "Kolkata",
+#     "Ahmedabad"
+# ]
+
+# devices = [
+#     "ANDROID",
+#     "IOS",
+#     "WEB"
+# ]
+
+# search_queries = [
+#     "men shirts",
+#     "women dresses",
+#     "running shoes",
+#     "casual t shirts",
+#     "blue jeans",
+#     "kurta for women",
+#     "sports shoes",
+#     "handbags",
+#     "watches",
+#     "sneakers"
+# ]
+
+# event_types = [
+#     "APP_OPEN",
+#     "SEARCH",
+#     "FILTER_APPLIED",
+#     "LISTING_IMPRESSION",
+#     "PRODUCT_VIEW",
+#     "WISHLIST",
+#     "ADD_TO_CART",
+#     "REMOVE_FROM_CART",
+#     "CHECKOUT",
+#     "PURCHASE"
+# ]
 
 # COMMAND ----------
 
