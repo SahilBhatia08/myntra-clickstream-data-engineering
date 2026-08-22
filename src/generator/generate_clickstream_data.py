@@ -290,48 +290,48 @@ print(f"Generated {len(products):,} products")
 #     }
 # ]
 
-# cities = [
-#     "Mumbai",
-#     "Delhi",
-#     "Bengaluru",
-#     "Hyderabad",
-#     "Chennai",
-#     "Pune",
-#     "Kolkata",
-#     "Ahmedabad"
-# ]
+cities = [
+    "Mumbai",
+    "Delhi",
+    "Bengaluru",
+    "Hyderabad",
+    "Chennai",
+    "Pune",
+    "Kolkata",
+    "Ahmedabad"
+]
 
-# devices = [
-#     "ANDROID",
-#     "IOS",
-#     "WEB"
-# ]
+devices = [
+    "ANDROID",
+    "IOS",
+    "WEB"
+]
 
-# search_queries = [
-#     "men shirts",
-#     "women dresses",
-#     "running shoes",
-#     "casual t shirts",
-#     "blue jeans",
-#     "kurta for women",
-#     "sports shoes",
-#     "handbags",
-#     "watches",
-#     "sneakers"
-# ]
+search_queries = [
+    "men shirts",
+    "women dresses",
+    "running shoes",
+    "casual t shirts",
+    "blue jeans",
+    "kurta for women",
+    "sports shoes",
+    "handbags",
+    "watches",
+    "sneakers"
+]
 
-# event_types = [
-#     "APP_OPEN",
-#     "SEARCH",
-#     "FILTER_APPLIED",
-#     "LISTING_IMPRESSION",
-#     "PRODUCT_VIEW",
-#     "WISHLIST",
-#     "ADD_TO_CART",
-#     "REMOVE_FROM_CART",
-#     "CHECKOUT",
-#     "PURCHASE"
-# ]
+event_types = [
+    "APP_OPEN",
+    "SEARCH",
+    "FILTER_APPLIED",
+    "LISTING_IMPRESSION",
+    "PRODUCT_VIEW",
+    "WISHLIST",
+    "ADD_TO_CART",
+    "REMOVE_FROM_CART",
+    "CHECKOUT",
+    "PURCHASE"
+]
 
 # COMMAND ----------
 
