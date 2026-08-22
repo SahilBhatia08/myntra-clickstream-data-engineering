@@ -388,7 +388,11 @@ try:
             F.current_timestamp().alias("silver_processed_timestamp"),
         )
 
+        silver_df.explain("formatted")
+
         silver_dedup_df = silver_df.dropDuplicates(["silver_event_key"])
+
+        silver_dedup_df.explain("formatted")
 
         silver_written = silver_dedup_df.count()
 
