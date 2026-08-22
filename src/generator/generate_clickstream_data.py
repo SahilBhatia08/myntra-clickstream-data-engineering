@@ -772,4 +772,4 @@ for batch_number in range(number_of_batches):
 
 # COMMAND ----------
 
-spark.read.json(landing_path).printSchema()
+spark.read.option("samplingRatio", 0.05).json(landing_path).printSchema()
