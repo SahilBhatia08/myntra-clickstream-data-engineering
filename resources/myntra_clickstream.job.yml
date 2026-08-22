@@ -71,6 +71,8 @@ resources:
               environment: ${bundle.target}
               pipeline_run_id: "{{job.run_id}}"
 
+          existing_cluster_id: 0819-103841-hupoqraa
+
           timeout_seconds: 1800
 
           max_retries: 3
